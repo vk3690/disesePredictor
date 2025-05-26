@@ -1,0 +1,39 @@
+2025-05-27 00:07:12.784 ERROR CalculateScore                           : null
+2025-05-27 00:07:12.952  INFO CalculateScore                           : user data colleted 
+2025-05-27 00:07:12.985  INFO CalculateScore                           : Error to find average of data param :: hba1c
+2025-05-27 00:07:12.985  INFO CalculateScore                           : Error to find average of data param :: Diabetes in family ,null
+2025-05-27 00:07:12.985  INFO CalculateScore                           : Error to find average of data param :: Physical Activity
+2025-05-27 00:07:12.986  INFO CalculateScore                           : Error to find average of data param :: Kidney Disease in family ,null
+2025-05-27 00:07:12.986  INFO CalculateScore                           : Error to find average of data param :: hscrp
+2025-05-27 00:07:12.986  INFO CalculateScore                           : individual health param values{}
+2025-05-27 00:07:12.986 ERROR CalculateScore                           : Error to normalize data :: / by zero
+2025-05-27 00:07:12.989 ERROR CalculateScore                           : Error to calculate data parameters based on condition :: Error to normalize data ::/ by zero
+2025-05-27 00:07:12.990 ERROR CalculateScore                           : Error to calculate score of user :: Error to calculate data parameters based on condition :: Error to normalize data ::/ by zero
+2025-05-27 00:09:05.024 ERROR CalculateScore                           : null
+2025-05-27 00:09:05.180  INFO CalculateScore                           : user data colleted 
+2025-05-27 00:09:05.191  INFO CalculateScore                           : individual health param values{Diabetes in family=-25, Kidney Disease in family=25, hscrp=20, hba1c=20, Physical Activity=-20}
+2025-05-27 00:09:05.191  INFO CalculateScore                           : Response sent to customer {Ideal Score=75, calculateScore=20.0, Poor Score=55} , vikas
+2025-05-27 00:10:42.230 ERROR CalculateScore                           : null
+2025-05-27 00:10:53.135  INFO CalculateScore                           : user data colleted 
+2025-05-27 00:10:53.154  INFO CalculateScore                           : individual health param values{Diabetes in family=-25, Kidney Disease in family=25, hscrp=20, hba1c=20, Physical Activity=-20}
+2025-05-27 00:10:57.491  INFO CalculateScore                           : Response sent to customer {Ideal Score=75, calculateScore=20.0, Poor Score=55} , vikas
+2025-05-27 00:11:31.898 ERROR CalculateScore                           : null
+2025-05-27 00:11:32.044  INFO CalculateScore                           : user data colleted 
+2025-05-27 00:11:32.060  INFO CalculateScore                           : individual health param values{Diabetes in family=-25, Kidney Disease in family=25, hscrp=20, hba1c=20, Physical Activity=-20}
+2025-05-27 00:11:32.060  INFO CalculateScore                           : Response sent to customer {Ideal Score=75, calculateScore=20.0, Poor Score=55} , vikas
+2025-05-27 00:12:58.936 ERROR CalculateScore                           : null
+2025-05-27 00:12:58.953 ERROR CalculateScore                           : Error User Not found ::vikas
+2025-05-27 00:13:33.636 ERROR CalculateScore                           : null
+2025-05-27 00:13:33.651 ERROR CalculateScore                           : Error User Not found ::vikas
+2025-05-27 00:14:38.268 ERROR CalculateScore                           : null
+2025-05-27 00:14:38.286 ERROR CalculateScore                           : Error User Not found ::vikas
+2025-05-27 00:15:36.043 ERROR CalculateScore                           : null
+2025-05-27 00:15:36.063 ERROR CalculateScore                           : Error Disease Not found to calculate score ::CVD
+2025-05-27 00:16:02.013 ERROR CalculateScore                           : null
+2025-05-27 00:16:02.031 ERROR CalculateScore                           : Error Disease Not found to calculate score ::CVD
+2025-05-27 00:18:44.904 ERROR CalculateScore                           : null
+2025-05-27 00:18:45.038 ERROR CalculateScore                           : Error to calculate score of user :: No model active for the disease 
+2025-05-27 00:19:24.908 ERROR CalculateScore                           : null
+2025-05-27 00:19:25.047 ERROR CalculateScore                           : Error to calculate score of user :: No model active for the disease 
+2025-05-27 00:20:10.902 ERROR CalculateScore                           : null
+2025-05-27 00:20:11.038 ERROR CalculateScore                           : Error to calculate score of user :: No model active for the disease 
