@@ -49,15 +49,7 @@ public class CalculateScoreTest {
     @Autowired
     private DataInjection dataInjection;
 
-    @BeforeEach
-    void injectData() {
-        try {
 
-            dataInjection.insertData();
-        } catch (Exception e) {
-            logger.error("{}", e.getMessage());
-        }
-    }
 
     private List<UserHealthData> adduserData(Users users) throws JsonProcessingException {
 
@@ -177,7 +169,7 @@ void TestGetScore() throws Exception {
         Mockito.when(parameterMasterRepo.findByModelId(parameterMasterList.get(0).getModelId())).thenReturn(parameterMasterList);
         Mockito.when(userHealthDataRepo.findByUserId(users)).thenReturn(this.adduserData(users));
         ResponseEntity<Object> response = calculateScore1.getScore(getScore);
-        assertEquals("Error to calculate score of user :: No model active for the disease", response.getBody().toString());
+        assertEquals("Error to calculate score of user :: No model active for the disease",response.getBody().toString());
     }
 @Test
 void TestGetScore1() throws Exception {

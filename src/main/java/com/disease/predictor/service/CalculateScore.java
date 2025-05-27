@@ -32,6 +32,8 @@ public class CalculateScore {
     private ParameterMasterRepo parameterMasterRepo;
     @Autowired
     private UserHealthDataRepo userHealthDataRepo;
+    @Autowired
+    private UserHealthReportLogsRepo userHealthReportLogsRepo;
 
     private static final Logger logger = LoggerFactory.getLogger("CalculateScore");
 
@@ -80,6 +82,8 @@ public class CalculateScore {
                 response.put("Ideal Score", modelMaster.get(0).getDiseaseMasterId().getIdealScore());
                 response.put("Poor Score", modelMaster.get(0).getDiseaseMasterId().getPoorScore());
                 logger.info("Response sent to customer {} , {}", response, users.getUsername());
+                this.logUserReport(response,users,modelMaster);
+
                 return new ResponseEntity<>(response.toString(), HttpStatus.OK);
             } else {
                 throw new CustomException("No model active for the disease ");
@@ -88,6 +92,22 @@ public class CalculateScore {
             logger.error("Error to calculate score of user :: {}", e.getMessage());
             return new ResponseEntity<>("Error to calculate score of user :: " + e.getLocalizedMessage(), HttpStatus.CONFLICT);
 
+        }
+    }
+
+    private void logUserReport(Map<String, Object> response, Users users, List<ModelAndDiseaseMapper> modelMaster) {
+        try {
+            UserHealthReportLogs userHealthReportLogs=userHealthReportLogsRepo.findTop1ByUserId(users);
+            if(userHealthReportLogs==null) {
+                userHealthReportLogs = new UserHealthReportLogs(1L,response.toString(),users, modelMaster.get(0), new Date());
+
+            }else{
+                userHealthReportLogs = new UserHealthReportLogs(userHealthReportLogs.getId(),response.toString(),users, modelMaster.get(0), new Date());
+            }
+            userHealthReportLogsRepo.saveAndFlush(userHealthReportLogs);
+        }catch (Exception e)
+        {
+            logger.error("Error to log user health report :: {}",e.getMessage());
         }
     }
 
@@ -220,6 +240,28 @@ public class CalculateScore {
             return listToAdd.stream().mapToInt(Integer::intValue).sum();
         } else {
             return 0;
+        }
+    }
+
+    public ResponseEntity<Object> getuserScoreReport(String username) {
+
+        try{
+            Users users = userDetailsRepo.findByUsername(username);
+            if (users != null) {
+               List<UserHealthReportLogs> userHealthReportLogs=userHealthReportLogsRepo.findByUserId(users);
+               if(!userHealthReportLogs.isEmpty()){
+                   return new ResponseEntity<>(userHealthReportLogs,HttpStatus.OK);
+               }else{
+                   throw new CustomException("No records of health report found");
+               }
+
+            } else {
+                throw new CustomException("User Not found ::" + username);
+            }
+        }catch (Exception e)
+        {
+            logger.error("Error to fetch user report :; {}",e.getMessage());
+            return new ResponseEntity<>("Error to fetch user report ",HttpStatus.OK);
         }
     }
 }

@@ -13,6 +13,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.websocket.server.PathParam;
+
 @RestController
 public class UserController {
 
@@ -28,8 +30,13 @@ public class UserController {
 
     @GetMapping("/injectData")
     public Object injectData() throws JsonProcessingException {
-        dataInjection.insertData();
-        return new ResponseEntity<>("Data injection successful", HttpStatus.OK);
+        try {
+          return   dataInjection.insertData();
+        }catch (Exception e)
+        {
+            logger.error("Error to inject data {}",e.getMessage());
+            return new ResponseEntity<>("Data injection failed",HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PostMapping(value = "/getScore",produces = MediaType.APPLICATION_JSON_VALUE)
@@ -40,6 +47,18 @@ public class UserController {
         {
             logger.error("Error to get user details {}",e.getMessage());
             return new ResponseEntity<>("User not found",HttpStatus.NOT_FOUND);
+        }
+    }
+
+
+    @GetMapping(value = "/getUserReport/{username}",produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Object> getUserReportOfScores(@PathVariable("username") String username) {
+        try {
+            return calculateScore.getuserScoreReport(username);
+        }catch (Exception e)
+        {
+            logger.error("Error to get user health report {}",e.getMessage());
+            return new ResponseEntity<>("Health report data not found",HttpStatus.NOT_FOUND);
         }
     }
 }
