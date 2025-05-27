@@ -22,7 +22,7 @@ public class UserController {
     public DataInjection dataInjection;
     @Autowired
     private CalculateScore calculateScore;
-        private static final Logger logger = LoggerFactory.getLogger("service");
+    private static final Logger logger = LoggerFactory.getLogger("userController");
 
 
 
