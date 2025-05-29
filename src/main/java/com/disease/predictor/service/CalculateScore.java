@@ -1,5 +1,6 @@
 package com.disease.predictor.service;
 
+import com.disease.predictor.dto.ErrorResponse;
 import com.disease.predictor.dto.GetScore;
 import com.disease.predictor.entity.*;
 import com.disease.predictor.entity.dto.ParameterCondition;
@@ -13,11 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequestMapping("/api/v1")
 public class CalculateScore {
     @Autowired
     UserDetailsRepo userDetailsRepo;
@@ -45,69 +48,74 @@ public class CalculateScore {
             if (users != null) {
                 DiseaseMaster diseaseMaster = diseaseMasterRepo.findByDiseaseName(score.getDisease());
                 if (diseaseMaster != null) {
-                    return this.calculateDiseaseScore(diseaseMaster, users);
+                    return this.findModelAndDiseaseMapper(diseaseMaster, users);
                 } else {
-                    throw new CustomException("Disease Not found to calculate score ::" + score.getDisease());
+                    logger.error("Disease Not found to calculate risk score : {}", score.getDisease());
+                    return this.getErrorResponse("Disease Not found to calculate risk score ", HttpStatus.NOT_FOUND.name());
                 }
             } else {
-                throw new CustomException("User Not found ::" + score.username);
+                logger.error("User Not found : {}", score.username);
+                return this.getErrorResponse("User Not found ::" + score.username, HttpStatus.NOT_FOUND.name());
             }
 
         } catch (Exception e) {
-            logger.error("Error {}", e.getLocalizedMessage());
-            return new ResponseEntity<>("Error " + e.getLocalizedMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            logger.error("Error :: {}", e.getLocalizedMessage());
+            return new ResponseEntity<>("Error ::" + e.getLocalizedMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
     }
 
-    protected ResponseEntity<Object> calculateDiseaseScore(DiseaseMaster diseaseMaster, Users users) {
+    private ResponseEntity<Object> findModelAndDiseaseMapper(DiseaseMaster diseaseMaster, Users users) {
         try {
             List<ModelAndDiseaseMapper> modelAndDiseaseMapperList = new ArrayList<>();
-
-                modelAndDiseaseMapperList.addAll(modelAndDiseaseMapperRepo.findByDiseaseMasterId(diseaseMaster));
-
+            modelAndDiseaseMapperList.addAll(modelAndDiseaseMapperRepo.findByDiseaseMasterId(diseaseMaster));
             List<ModelAndDiseaseMapper> modelMaster = modelAndDiseaseMapperList.stream().filter(i -> i.getModelMasterId().isActive()).collect(Collectors.toList());
             if (!modelMaster.isEmpty()) {
                 List<ParameterMaster> parameterMastersList = parameterMasterRepo.findByModelId(modelMaster.get(0).getModelMasterId());
-
                 List<UserHealthData> userHealthDataList = userHealthDataRepo.findByUserId(users);
-                Map<String, List<Integer>> valuesCollected = new HashMap<>();
-                for (UserHealthData userHealthData : userHealthDataList) {
-                    this.collectUserDataParameters(parameterMastersList, userHealthData, valuesCollected);
-                }
-                logger.info("user data colleted ");
-                Double score = this.getScorebasedOnConditionOnCollectedData(valuesCollected, parameterMastersList);
-                Map<String, Object> response = new HashMap<>();
-                response.put("calculateScore", score);
-                response.put("Ideal Score", modelMaster.get(0).getDiseaseMasterId().getIdealScore());
-                response.put("Poor Score", modelMaster.get(0).getDiseaseMasterId().getPoorScore());
-                logger.info("Response sent to customer {} , {}", response, users.getUsername());
-                this.logUserReport(response,users,modelMaster);
+                if (!userHealthDataList.isEmpty()) {
+                    Map<String, List<Integer>> valuesCollected = new HashMap<>();
+                    for (UserHealthData userHealthData : userHealthDataList) {
+                        this.collectUserDataParameters(parameterMastersList, userHealthData, valuesCollected);
+                    }
+                    logger.info("user data colleted ");
+                    int score = this.getScorebasedOnConditionOnCollectedData(valuesCollected, parameterMastersList);
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("calculateScore", score);
+                    response.put("Ideal Score", modelMaster.get(0).getDiseaseMasterId().getIdealScore());
+                    response.put("Poor Score", modelMaster.get(0).getDiseaseMasterId().getPoorScore());
+                    logger.info("Response sent to customer {} , {}", response, users.getUsername());
+                    this.logUserReport(response, users, modelMaster);
+                    return new ResponseEntity<>(response.toString(), HttpStatus.OK);
+                } else {
+                    logger.error("No user data found to calculate risk score :: {}", users.getUsername());
+                    return this.getErrorResponse("No user data found to calculate risk score", HttpStatus.NOT_FOUND.name());
+//                    throw new CustomException("No user data found to calculate risk score");
 
-                return new ResponseEntity<>(response.toString(), HttpStatus.OK);
+                }
             } else {
-                throw new CustomException("No model active for the disease ");
+                logger.error("No model active for the disease :: {}", users.getUsername());
+                return this.getErrorResponse("No model active for the disease ", HttpStatus.NOT_FOUND.name());
             }
         } catch (Exception e) {
             logger.error("Error to calculate score of user :: {}", e.getMessage());
-            return new ResponseEntity<>("Error to calculate score of user :: " + e.getLocalizedMessage(), HttpStatus.CONFLICT);
+            return this.getErrorResponse("Error to calculate score of user " + users.getUsername(), HttpStatus.NOT_FOUND.name());
 
         }
     }
 
     private void logUserReport(Map<String, Object> response, Users users, List<ModelAndDiseaseMapper> modelMaster) {
         try {
-            UserHealthReportLogs userHealthReportLogs=userHealthReportLogsRepo.findTop1ByUserId(users);
-            if(userHealthReportLogs==null) {
-                userHealthReportLogs = new UserHealthReportLogs(1L,response.toString(),users, modelMaster.get(0), new Date());
+            UserHealthReportLogs userHealthReportLogs = userHealthReportLogsRepo.findTop1ByUserId(users);
+            if (userHealthReportLogs == null) {
+                userHealthReportLogs = new UserHealthReportLogs(1L, response.toString(), users, modelMaster.get(0), new Date());
 
-            }else{
-                userHealthReportLogs = new UserHealthReportLogs(userHealthReportLogs.getId(),response.toString(),users, modelMaster.get(0), new Date());
+            } else {
+                userHealthReportLogs = new UserHealthReportLogs(userHealthReportLogs.getId(), response.toString(), users, modelMaster.get(0), new Date());
             }
             userHealthReportLogsRepo.saveAndFlush(userHealthReportLogs);
-        }catch (Exception e)
-        {
-            logger.error("Error to log user health report :: {}",e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error to log user health report :: {}", e.getMessage());
         }
     }
 
@@ -129,7 +137,7 @@ public class CalculateScore {
         }
     }
 
-    private Double getScorebasedOnConditionOnCollectedData(Map<String, List<Integer>> valuesCollected, List<ParameterMaster> parameterMasterList) throws CustomException {
+    private int getScorebasedOnConditionOnCollectedData(Map<String, List<Integer>> valuesCollected, List<ParameterMaster> parameterMasterList) throws CustomException {
 
         try {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -140,7 +148,7 @@ public class CalculateScore {
 
                 switch (parameterCondition.getConditionName()) {
                     case "GREATER_THAN": {
-                        this.evaluteConditionGreaterThan(valuesCollected, parameterMaster, parameterCondition, averageOfDataParams);
+                        this.evaluateConditionGreaterThan(valuesCollected, parameterMaster, parameterCondition, averageOfDataParams);
                         break;
                     }
                     case "AVERAGE_OF_TIME_PERIOD": {
@@ -154,7 +162,7 @@ public class CalculateScore {
                 }
             }
             logger.info("individual health param values{}", averageOfDataParams);
-          return   this.normalizeValues(averageOfDataParams);
+            return this.normalizeValues(averageOfDataParams);
 //            return averageOfDataParams.values().stream().mapToInt(Integer::intValue).sum() / parameterMasterList.size();
         } catch (Exception e) {
             logger.error("Error to calculate data parameters based on condition :: {}", e.getMessage());
@@ -162,20 +170,20 @@ public class CalculateScore {
         }
     }
 
-    private Double normalizeValues(Map<String, Integer> averageOfDataParams) throws CustomException {
+    private int normalizeValues(Map<String, Integer> averageOfDataParams) throws CustomException {
         try {
             List<Integer> sortedvalues = averageOfDataParams.values().stream().sorted().collect(Collectors.toList());
             int score = 0;
             for (String key : averageOfDataParams.keySet()) {
-                int numerator=(averageOfDataParams.get(key) - sortedvalues.get(0));
-                int denominator=(sortedvalues.get(sortedvalues.size() - 1) - sortedvalues.get(0));
-                score=score+((numerator/denominator)*100);
+                int numerator = (averageOfDataParams.get(key) - sortedvalues.get(0));
+                int denominator = (sortedvalues.get(sortedvalues.size() - 1) - sortedvalues.get(0));
+                score = score + ((numerator / denominator) * 100);
             }
-             return (double) (score/sortedvalues.size());
+            return  (score / sortedvalues.size());
 
         } catch (Exception e) {
             logger.error("Error to normalize data :: {}", e.getMessage());
-            throw new CustomException("Error to normalize data ::"+ e.getMessage());
+            throw new CustomException("Error to normalize data ::" + e.getMessage());
         }
     }
 
@@ -217,18 +225,18 @@ public class CalculateScore {
         }
     }
 
-    private void evaluteConditionGreaterThan(Map<String, List<Integer>> valuesCollected, ParameterMaster parameterMaster, ParameterCondition parameterCondition,
-                                             Map<String, Integer> averageOfDataParams) {
+    private void evaluateConditionGreaterThan(Map<String, List<Integer>> valuesCollected, ParameterMaster parameterMaster, ParameterCondition parameterCondition,
+                                              Map<String, Integer> averageOfDataParams) {
         try {
-            Integer average = 0;
+            int summation = 0;
             for (Integer data : valuesCollected.get(parameterMaster.getParameterName())) {
                 if (parameterCondition.getCondition().get("value") < data) {
-                    average = average + parameterMaster.getAddScore();
+                    summation = summation + parameterMaster.getAddScore();
                 } else {
-                    average = average + (-1 * parameterMaster.getDeductScore());
+                    summation = summation + (-1 * parameterMaster.getDeductScore());
                 }
             }
-            averageOfDataParams.put(parameterMaster.getParameterName(), average);
+            averageOfDataParams.put(parameterMaster.getParameterName(), summation );
 
         } catch (Exception e) {
             logger.info("Error to find average of data param :: {}", parameterMaster.getParameterName());
@@ -245,23 +253,36 @@ public class CalculateScore {
 
     public ResponseEntity<Object> getuserScoreReport(String username) {
 
-        try{
+        try {
             Users users = userDetailsRepo.findByUsername(username);
             if (users != null) {
-               List<UserHealthReportLogs> userHealthReportLogs=userHealthReportLogsRepo.findByUserId(users);
-               if(!userHealthReportLogs.isEmpty()){
-                   return new ResponseEntity<>(userHealthReportLogs,HttpStatus.OK);
-               }else{
-                   throw new CustomException("No records of health report found");
-               }
+                List<UserHealthReportLogs> userHealthReportLogs = userHealthReportLogsRepo.findByUserId(users);
+                if (!userHealthReportLogs.isEmpty()) {
+                    return new ResponseEntity<>(userHealthReportLogs, HttpStatus.OK);
+                } else {
+                    logger.error("No records of health report found : {}", userHealthReportLogs);
+                    return this.getErrorResponse("No records of health report found ", HttpStatus.NOT_FOUND.name());
+                }
 
             } else {
-                throw new CustomException("User Not found ::" + username);
+                logger.error("User Not found : {}", username);
+                return this.getErrorResponse("User Not found ", HttpStatus.NOT_FOUND.name());
             }
-        }catch (Exception e)
-        {
-            logger.error("Error to fetch user report :; {}",e.getMessage());
-            return new ResponseEntity<>("Error to fetch user report ",HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error to fetch user report :: {}", e.getMessage());
+            return new ResponseEntity<>("Error to fetch user report ", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
+    public ResponseEntity<Object> getErrorResponse(String message, String httpStatus) {
+        try {
+            return new ResponseEntity<>(message, HttpStatus.valueOf(httpStatus));
+        } catch (Exception e) {
+            logger.error("Error to get error message :: {}", e.getLocalizedMessage());
+            ErrorResponse response = new ErrorResponse("ERROR", "Error to get error message ::" + e.getLocalizedMessage());
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

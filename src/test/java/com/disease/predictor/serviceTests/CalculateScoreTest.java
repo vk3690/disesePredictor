@@ -8,7 +8,6 @@ import com.disease.predictor.service.CalculateScore;
 import com.disease.predictor.service.DataInjection;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -45,10 +44,11 @@ public class CalculateScoreTest {
     private static final Logger logger = LoggerFactory.getLogger("CalculateScore");
 
     @InjectMocks
-    private CalculateScore calculateScore1;
+    private CalculateScore calculateScore;
+    @Mock
+    private UserHealthReportLogsRepo userHealthReportLogsRepo;
     @Autowired
     private DataInjection dataInjection;
-
 
 
     private List<UserHealthData> adduserData(Users users) throws JsonProcessingException {
@@ -69,58 +69,77 @@ public class CalculateScoreTest {
         healthData.put("Blood Pressure", 120);
 
         userHealthData.add(new UserHealthData((long) 1L, objectMapper.writeValueAsString(healthData), users, new Date()));
-return userHealthData;
+        return userHealthData;
 
     }
 
 
-public List<ParameterMaster> addDiseaseMaster(ModelMaster modelMaster) throws JsonProcessingException {
+    public List<ParameterMaster> addDiseaseMaster(ModelMaster modelMaster) throws JsonProcessingException {
 
-    ObjectMapper objectMapper = new ObjectMapper();
-    List<ParameterMaster> diabetesParameterMasterList = Arrays.asList(new ParameterMaster(1L, "hba1c",
-                    objectMapper.writeValueAsString(new ParameterCondition("GREATER_THAN", new HashMap<>() {{
-                        put("value", 6);
-                    }})), 20, 20, modelMaster),
-            new ParameterMaster(2L, "Diabetes in family",
-                    objectMapper.writeValueAsString(new ParameterCondition("BOOLEAN", new HashMap<>() {{
-                        put("value", 1);
-                    }})), 25, 25, modelMaster)
-            , new ParameterMaster(3L, "Physical Activity",
-                    objectMapper.writeValueAsString(new ParameterCondition("AVERAGE_OF_TIME_PERIOD", new HashMap<>() {{
-                        put("value", 45);
-                        put("timePeriod", 90);
-                    }})), 20, 20, modelMaster),
-            new ParameterMaster(4L, "Kidney Disease in family",
-                    objectMapper.writeValueAsString(new ParameterCondition("BOOLEAN", new HashMap<>() {{
-                        put("value", 1);
-                    }})), 25, 25, modelMaster),
-            new ParameterMaster(5L, "hscrp",
-                    objectMapper.writeValueAsString(new ParameterCondition("GREATER_THAN", new HashMap<>() {{
-                        put("value", 2);
-                    }})), 20, 20, modelMaster));
-    return diabetesParameterMasterList;
-}
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<ParameterMaster> diabetesParameterMasterList = Arrays.asList(new ParameterMaster(1L, "hba1c",
+                        objectMapper.writeValueAsString(new ParameterCondition("GREATER_THAN", new HashMap<>() {{
+                            put("value", 6);
+                        }})), 20, 20, modelMaster),
+                new ParameterMaster(2L, "Diabetes in family",
+                        objectMapper.writeValueAsString(new ParameterCondition("BOOLEAN", new HashMap<>() {{
+                            put("value", 1);
+                        }})), 25, 25, modelMaster)
+                , new ParameterMaster(3L, "Physical Activity",
+                        objectMapper.writeValueAsString(new ParameterCondition("AVERAGE_OF_TIME_PERIOD", new HashMap<>() {{
+                            put("value", 45);
+                            put("timePeriod", 90);
+                        }})), 20, 20, modelMaster),
+                new ParameterMaster(4L, "Kidney Disease in family",
+                        objectMapper.writeValueAsString(new ParameterCondition("BOOLEAN", new HashMap<>() {{
+                            put("value", 1);
+                        }})), 25, 25, modelMaster),
+                new ParameterMaster(5L, "hscrp",
+                        objectMapper.writeValueAsString(new ParameterCondition("GREATER_THAN", new HashMap<>() {{
+                            put("value", 2);
+                        }})), 20, 20, modelMaster));
+        return diabetesParameterMasterList;
+    }
 
 
-@Test
-void TestGetScore() throws Exception {
+    @Test
+    void TestGetScore() throws Exception {
 
-    GetScore getScore = new GetScore("vikas", "CVD");
-    Users users = new Users(1L, "vikas", "1234");
-    Mockito.when(userDetailsRepo.findByUsername(any())).thenReturn(users);
-    DiseaseMaster diseaseMaster = new DiseaseMaster(1L, "Diabetes", 75, 65, 55);
-    Mockito.when(diseaseMasterRepo.findByDiseaseName("CVD")).thenReturn(diseaseMaster);
-    ModelMaster modelMaster = new ModelMaster(1L, "Diabetes Model One", Boolean.TRUE, new Date(), new Date());
-    List<ParameterMaster> parameterMasterList = this.addDiseaseMaster(modelMaster);
-    List<ModelAndDiseaseMapper> modelAndDiseaseMapperList = Arrays.asList(new ModelAndDiseaseMapper(1L, diseaseMaster, parameterMasterList.get(0).getModelId()));
-    Mockito.when(modelAndDiseaseMapperRepo.findByDiseaseMasterId(diseaseMaster)).thenReturn(modelAndDiseaseMapperList);
-    Mockito.when(parameterMasterRepo.findByModelId(parameterMasterList.get(0).getModelId())).thenReturn(parameterMasterList);
-    Mockito.when(userHealthDataRepo.findByUserId(users)).thenReturn(this.adduserData(users));
-    ResponseEntity<Object> response = calculateScore1.getScore(getScore);
+        GetScore getScore = new GetScore("vikas", "CVD");
+        Users users = new Users(1L, "vikas", "1234");
+        Mockito.when(userDetailsRepo.findByUsername(any())).thenReturn(users);
+        DiseaseMaster diseaseMaster = new DiseaseMaster(1L, "Diabetes", 75, 65, 55);
+        Mockito.when(diseaseMasterRepo.findByDiseaseName("CVD")).thenReturn(diseaseMaster);
+        ModelMaster modelMaster = new ModelMaster(1L, "Diabetes Model One", Boolean.TRUE, new Date(), new Date());
+        List<ParameterMaster> parameterMasterList = this.addDiseaseMaster(modelMaster);
+        List<ModelAndDiseaseMapper> modelAndDiseaseMapperList = Arrays.asList(new ModelAndDiseaseMapper(1L, diseaseMaster, parameterMasterList.get(0).getModelId()));
+        Mockito.when(modelAndDiseaseMapperRepo.findByDiseaseMasterId(diseaseMaster)).thenReturn(modelAndDiseaseMapperList);
+        Mockito.when(parameterMasterRepo.findByModelId(parameterMasterList.get(0).getModelId())).thenReturn(parameterMasterList);
+        Mockito.when(userHealthDataRepo.findByUserId(users)).thenReturn(this.adduserData(users));
+        ResponseEntity<Object> response = calculateScore.getScore(getScore);
 
-    assertEquals("{Ideal Score=75, calculateScore=20.0, Poor Score=55}", response.getBody());
-}
+        assertEquals("{Ideal Score=75, calculateScore=20.0, Poor Score=55}", response.getBody());
+    }
 
+
+    @Test
+    void TestGetScoreUserHealthDataNotFound() throws Exception {
+
+        GetScore getScore = new GetScore("vikas", "CVD");
+        Users users = new Users(1L, "vikas", "1234");
+        Mockito.when(userDetailsRepo.findByUsername(any())).thenReturn(users);
+        DiseaseMaster diseaseMaster = new DiseaseMaster(1L, "Diabetes", 75, 65, 55);
+        Mockito.when(diseaseMasterRepo.findByDiseaseName("CVD")).thenReturn(diseaseMaster);
+        ModelMaster modelMaster = new ModelMaster(1L, "Diabetes Model One", Boolean.TRUE, new Date(), new Date());
+        List<ParameterMaster> parameterMasterList = this.addDiseaseMaster(modelMaster);
+        List<ModelAndDiseaseMapper> modelAndDiseaseMapperList = Arrays.asList(new ModelAndDiseaseMapper(1L, diseaseMaster, parameterMasterList.get(0).getModelId()));
+        Mockito.when(modelAndDiseaseMapperRepo.findByDiseaseMasterId(diseaseMaster)).thenReturn(modelAndDiseaseMapperList);
+        Mockito.when(parameterMasterRepo.findByModelId(parameterMasterList.get(0).getModelId())).thenReturn(parameterMasterList);
+        Mockito.when(userHealthDataRepo.findByUserId(users)).thenReturn(new ArrayList<>());
+        ResponseEntity<Object> response = calculateScore.getScore(getScore);
+
+        assertEquals("No user data found to calculate risk score", response.getBody());
+    }
 
     @Test
     void TestGetScoreUserNotFound() throws Exception {
@@ -132,7 +151,7 @@ void TestGetScore() throws Exception {
 //        Mockito.when(diseaseMasterRepo.findByDiseaseName("CVD")).thenReturn(diseaseMaster);
 
         ModelAndDiseaseMapper modelAndDiseaseMapper = new ModelAndDiseaseMapper(1L);
-        ResponseEntity<Object> response = calculateScore1.getScore(getScore);
+        ResponseEntity<Object> response = calculateScore.getScore(getScore);
         assertEquals("Error User Not found ::vikas", response.getBody());
     }
 
@@ -147,10 +166,9 @@ void TestGetScore() throws Exception {
         Mockito.when(diseaseMasterRepo.findByDiseaseName("CVD")).thenReturn(null);
 
         ModelAndDiseaseMapper modelAndDiseaseMapper = new ModelAndDiseaseMapper(1L);
-        ResponseEntity<Object> response = calculateScore1.getScore(getScore);
+        ResponseEntity<Object> response = calculateScore.getScore(getScore);
         assertEquals("Error Disease Not found to calculate score ::CVD", response.getBody());
     }
-
 
 
     @Test
@@ -162,27 +180,73 @@ void TestGetScore() throws Exception {
         DiseaseMaster diseaseMaster = new DiseaseMaster(1L, "Diabetes", 75, 65, 55);
         Mockito.when(diseaseMasterRepo.findByDiseaseName("CVD")).thenReturn(diseaseMaster);
         ModelMaster modelMaster = new ModelMaster(1L, "Diabetes Model One", Boolean.FALSE, new Date(), new Date());
-
         List<ParameterMaster> parameterMasterList = this.addDiseaseMaster(modelMaster);
         List<ModelAndDiseaseMapper> modelAndDiseaseMapperList = Arrays.asList(new ModelAndDiseaseMapper(1L, diseaseMaster, parameterMasterList.get(0).getModelId()));
         Mockito.when(modelAndDiseaseMapperRepo.findByDiseaseMasterId(diseaseMaster)).thenReturn(modelAndDiseaseMapperList);
         Mockito.when(parameterMasterRepo.findByModelId(parameterMasterList.get(0).getModelId())).thenReturn(parameterMasterList);
         Mockito.when(userHealthDataRepo.findByUserId(users)).thenReturn(this.adduserData(users));
-        ResponseEntity<Object> response = calculateScore1.getScore(getScore);
-        assertEquals("Error to calculate score of user :: No model active for the disease",response.getBody().toString());
+        ResponseEntity<Object> response = calculateScore.getScore(getScore);
+        assertEquals("Error to calculate score of user :: No model active for the disease", response.getBody().toString());
     }
-@Test
-void TestGetScore1() throws Exception {
 
-    GetScore getScore = new GetScore("vikas", "CVD");
-    Users users = new Users(1L, "vikas", "1234");
-    Mockito.when(userDetailsRepo.findByUsername(any())).thenReturn(users);
-    DiseaseMaster diseaseMaster = new DiseaseMaster(1L, "Diabetes", 75, 65, 55);
-    Mockito.when(diseaseMasterRepo.findByDiseaseName("CVD")).thenReturn(diseaseMaster);
+    @Test
+    void TestGetScore1() throws Exception {
 
-    ModelAndDiseaseMapper modelAndDiseaseMapper = new ModelAndDiseaseMapper(1L);
-    ResponseEntity<Object> response = calculateScore1.getScore(getScore);
-    assertEquals(409, response.getStatusCodeValue());
+        GetScore getScore = new GetScore("vikas", "CVD");
+        Users users = new Users(1L, "vikas", "1234");
+        Mockito.when(userDetailsRepo.findByUsername(any())).thenReturn(users);
+        DiseaseMaster diseaseMaster = new DiseaseMaster(1L, "Diabetes", 75, 65, 55);
+        Mockito.when(diseaseMasterRepo.findByDiseaseName("CVD")).thenReturn(diseaseMaster);
 
-}
+        ModelAndDiseaseMapper modelAndDiseaseMapper = new ModelAndDiseaseMapper(1L);
+        ResponseEntity<Object> response = calculateScore.getScore(getScore);
+        assertEquals(409, response.getStatusCodeValue());
+
+    }
+
+    @Test
+    void TestGetScoreHistoryUserNotFound() throws Exception {
+        Mockito.when(userDetailsRepo.findByUsername("kamal")).thenReturn(null);
+        ResponseEntity<Object> response = calculateScore.getuserScoreReport("kamal");
+        assertEquals(404, response.getStatusCodeValue());
+
+    }
+
+
+    @Test
+    void TestGetScoreHistory() throws Exception {
+        Users users = new Users(1L, "vikas", "1234");
+        List<UserHealthReportLogs> userHealthReportLogs=new ArrayList<>();
+        Mockito.when(userHealthReportLogsRepo.findByUserId(users)).thenReturn(userHealthReportLogs);
+        Mockito.when(userDetailsRepo.findByUsername("vikas")).thenReturn(users);
+        ResponseEntity<Object> response = calculateScore.getuserScoreReport("vikas");
+        assertEquals(404, response.getStatusCodeValue());
+
+    }
+
+
+
+    @Test
+    void TestGetScoreHistoryNoHistoryFound() throws Exception {
+        Users users = new Users(1L, "vikas", "1234");
+        List<UserHealthReportLogs> userHealthReportLogs=new ArrayList<>();
+        Mockito.when(userHealthReportLogsRepo.findByUserId(users)).thenReturn(userHealthReportLogs);
+        Mockito.when(userDetailsRepo.findByUsername("vikas")).thenReturn(users);
+        ResponseEntity<Object> response = calculateScore.getuserScoreReport("vikas");
+        assertEquals(404, response.getStatusCodeValue());
+
+    }
+
+
+    @Test
+    void TestGetScoreHistoryHistoryFound() throws Exception {
+        Users users = new Users(1L, "vikas", "1234");
+        List<UserHealthReportLogs> userHealthReportLogs= List.of(new UserHealthReportLogs());
+        Mockito.when(userHealthReportLogsRepo.findByUserId(users)).thenReturn(userHealthReportLogs);
+        Mockito.when(userDetailsRepo.findByUsername("vikas")).thenReturn(users);
+        ResponseEntity<Object> response = calculateScore.getuserScoreReport("vikas");
+        assertEquals(200, response.getStatusCodeValue());
+
+    }
+
 }
